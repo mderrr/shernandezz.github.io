@@ -1,1 +1,0 @@
-# shernandezz.github.io
