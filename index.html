@@ -3,12 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="https://github.com/shernandezz/zoom-links/raw/master/ASSETS/Icons/connection.ico">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.2/animate.css" integrity="sha256-a2tobsqlbgLsWs7ZVUGgP5IvWZsx8bTNQpzsqCSm5mk=" crossorigin="anonymous" />
+    <link rel="icon" href="https://raw.githubusercontent.com/shernandezz/zoom-links/master/source/assets/icons/icon.ico">
+    <link rel="stylesheet" type="text/css" href="./styles/style.css"/>
     <title>Zoom Links</title>
 </head>
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
-    <script type="module" src="JavaScript/main.js"></script>
+    <div id = "mainArea">
+        <div id = "animationArea"></div>
+        <div>
+            <h2 id = "messageBox"></h2>
+            <select id="selectionBox">
+                <option value=""></option>
+            </select>
+        </div>
+        <button class="interactionButton" id = "cancelButton">Cancelar</button>
+        <button class="interactionButton" id = "copyButton">Copiar Link</button>
+        <button class="interactionButton" id = "confirmButton">Aceptar</button>     
+    </div>
+    <script src="./renderer/renderer.js">
+    </script>
 </body>
 </html>
