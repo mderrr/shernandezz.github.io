@@ -217,7 +217,6 @@ function action(type, subject, data, details) {
         if (type == "join") {
             execute(() => {
                 window.open(url, "_self")
-                window.location.reload()
             })
         } else if (type == "copy") {
             execute(() => {
