@@ -119,6 +119,7 @@ let fields = document.getElementsByClassName("field")
 let checkButtons = document.getElementsByClassName("checkbox")
 let subCheckbuttons = document.getElementsByClassName("sub")
 let messageBox = document.getElementById("messageBox")
+let configMessageBox = document.getElementById("configMessageBox")
 let selectionBox = document.getElementById("selectionBox")
 let mainArea = document.getElementById("mainArea")
 let animationArea = document.getElementById("animationArea")
@@ -258,8 +259,10 @@ function presentPanel(panel, subjects, data) {
         }
 
     } else if (panel.isConfig) {
-        messageBox.style.top = "-1%"
-        message = "Selección de asignaturas"
+
+        configMessageBox.textContent = "Seleccion de Materias"
+        configMessageBox.style.opacity = 1
+        message = ""
         
         configButton.style.visibility = "hidden"
         configButton.style.opacity = 0
@@ -469,7 +472,11 @@ function checkSchedule(data) {
     
     // check how many subjects there are
     if (subjectsInSchedule.length == 0) {
-        presentPanel(noSubjectsInSchedule)
+        if (content == "") {
+            action("config", undefined, undefined, undefined)
+        } else {
+            presentPanel(noSubjectsInSchedule)
+        }   
 
     } else if (subjectsInSchedule.length == 1) {
         presentPanel(oneSubjectPanel, subjectsInSchedule, data)
