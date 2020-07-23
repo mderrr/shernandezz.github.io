@@ -1,10 +1,8 @@
-//const {ipcRenderer} = require("electron")
-
-
 /* /////////////////////////////////////////////////////////////////////////// CLASS DECLARATION /////////////////////////////////////////////////////////////////////////// */
 class Panel {
     constructor(properties) {
         this.isAlert = properties.isAlert
+        this.isConfig = properties.isConfig
         this.template = properties.template
         this.message = properties.message
         this.details = properties.details
@@ -15,20 +13,20 @@ class Panel {
 }
 
 /* ////////////////////////////////////////////////////////////////////////// CONSTANT DECLARATION ////////////////////////////////////////////////////////////////////////// */
-
 const dataLink = "https://raw.githubusercontent.com/shernandezz/zoom-links/master/JSON%20files/data.json"
 const errors = {
-    "certificateNotYetValid": "FetchError: request to https://raw.githubusercontent.com/shernandezz/zoom-links/master/JSON%20files/data.json failed, reason: certificate is not yet valid"
+    "certificateNotYetValid": "FetchError: request to https://raw.githubusercontent.com/shernandezz/zoom-links/master/JSON%20files/data.json failed, reason: certificate is not yet valid",
+    "error503": "GET https://raw.githubusercontent.com/shernandezz/zoom-links/master/JSON%20files/data.json 503 (Backend is unhealthy)"
 }
 
-// ---------------------- Color palette ---------------------- //
 const colors = {
     "white": "#ffffff",
     "errorRed": "#ef5350",
+    "blue": "#2196f3",
     "successGreen": "#66bb6a"
 }
 
-// --------------------- Panel creation --------------------- //
+/* ///////////////////////////////////////////////////////////////////////////// PANEL CREATION ///////////////////////////////////////////////////////////////////////////// */
 const oneSubjectPanel = new Panel({
     "template": "success",
     "message": "todo listo para ingresar al aula de ",
@@ -98,26 +96,32 @@ const noSubjectsInSchedule = new Panel({
     ]
 })
 
+const configPanel = new Panel({
+    "isConfig": true,
+    "template": "success",
+    "backgroundColor": colors.blue,
+    "buttons": [
+        undefined,
+        undefined,
+        undefined,
+        "Guardar"
+    ]
+})
+
 /* /////////////////////////////////////////////////////////////////////////// ELEMENT GATHERING /////////////////////////////////////////////////////////////////////////// */
-
-// Get the button classes
 let interactionButton = document.getElementsByClassName("interactionButton")
-
-// Get the individual buttons
 let confirmButton = document.getElementById("confirmButton")
+let saveButton = document.getElementById("saveButton")
 let copyButton = document.getElementById("copyButton")
 let cancelButton = document.getElementById("cancelButton")
-
-// Get the messageBox 
+let configButton = document.getElementById("configButton")
+let fields = document.getElementsByClassName("field")
+let checkButtons = document.getElementsByClassName("checkbox")
+let subCheckbuttons = document.getElementsByClassName("sub")
 let messageBox = document.getElementById("messageBox")
-
-// Get the selection box
 let selectionBox = document.getElementById("selectionBox")
-
-// Get the Areas
 let mainArea = document.getElementById("mainArea")
 let animationArea = document.getElementById("animationArea")
-let cover = document.getElementById("cover")
 
 /* /////////////////////////////////////////////////////////////////////////////// FUNCTIONS /////////////////////////////////////////////////////////////////////////////// */
 function createOptions(optionsArray, container) {
@@ -130,14 +134,11 @@ function createOptions(optionsArray, container) {
 }
 
 function hideButtons(notHideSelect) {
-
-    // Hide interaction buttons
     for (let i = 0; i < 3; i++) {
         interactionButton.item(i).style.visibility = "hidden"
         interactionButton.item(i).style.opacity = 0
     }
 
-    // Also the hide select box unless especified otherwise
     if (notHideSelect !== true) {
         selectionBox.style.opacity = 0
         selectionBox.style.visibility = "hidden"
@@ -145,22 +146,24 @@ function hideButtons(notHideSelect) {
 }
 
 function applyClasses(panel) {
-
-    // apply effects to each interaction button
     for (let i = 0; i < interactionButton.length; i++) {
         interactionButton.item(i).classList.add(
             interactionButton.item(i).id + "-" + panel.template,
             interactionButton.item(i).id + "-" + panel.template + "-" + "hover"
         )
     }
+
+    configButton.classList.add(
+        "configButton-set-left",
+        "configButton-hover"
+    )
+
+    getSelections()
 }
 
 function displayButttons(panel) {
-
-    // Make sure all buttons are hidden already
     hideButtons()
     
-    // Check which interaction buttons to make visible
     for (let i = 0; i < interactionButton.length; i++) {
         if (panel.buttons[i] !== undefined) {
             interactionButton.item(i).style.opacity = 1
@@ -169,24 +172,20 @@ function displayButttons(panel) {
         }
     }
 
-    // Check weather to show the select box
     if (panel.showSelect) {
         selectionBox.style.opacity = 1
         selectionBox.style.visibility = "visible"
 
-        // Check if the selection box has a selected value, if it doesn't then dont show the interaction buttons
         if (selectionBox.value == "") {
             hideButtons(true)
         }
     }
 
-    // Then add the classes for effects
     applyClasses(panel)
 }
 
 function getSubjectByName(subjectName, subjectsList) {
     for (let i = 0; i < subjectsList.length; i++) {
-        // Go through every name until a match is found
         if (subjectsList[i].Nombre == subjectName) {
             return subjectsList[i]
         }    
@@ -194,11 +193,8 @@ function getSubjectByName(subjectName, subjectsList) {
 }
 
 function execute(action) {
-
-    // Fade out
     presentPanel(fadeToWhitePanel)
 
-    // then execute the action and exit
     setTimeout(() => {
         action()
     }, 1000)
@@ -209,11 +205,19 @@ function action(type, subject, data, details) {
     if (type == "details") {
         window.open(details, "_self")
 
+    } else if (type == "config") {
+        presentPanel(configPanel)
+
+    } else if (type == "save") {
+        saveConfig()
+        execute(() => {
+            window.location.reload()
+        })
+
     } else {
         let classroomLink = data.Salones[subject.Salon]
         let url = "https://zoom.us/j/" + classroomLink
 
-        // execute the required action
         if (type == "join") {
             execute(() => {
                 window.open(url, "_self")
@@ -239,58 +243,204 @@ function presentPanel(panel, subjects, data) {
 
     // Define the default starting functions for a click event
     function confirmClickAction() {action("join", subjectObject, data)}
+    function saveClickAction() {action("save", undefined, undefined)}   
     function copyClickAction() {action("copy", subjectObject, data)}
     function cancelClickAction() {action("details", undefined, undefined, panel.details)}
-
-    // Check what actions to assign to the buttons depending on the panel type(alert, selection or normal)
+    function configButtonAction() {action("config", undefined, undefined, undefined)}
+    
     if (panel.isAlert) {
-
-        // Set the custom actions of the buttons
         confirmClickAction = () => {
-
-            // Set the area color to white in order to get a fade out effect
             mainArea.style.backgroundColor = colors.white
 
-            // Then send a reload request
             setTimeout(() => {
                 location.reload()
             }, 1000)
         }
 
-    } else if (panel.showSelect) {
-
-        // Append the options to the selection box
-        createOptions(subjects, selectionBox)
+    } else if (panel.isConfig) {
+        messageBox.style.top = "-1%"
+        message = "Selección de asignaturas"
         
-        // Set the selected object every time the value changes
+        configButton.style.visibility = "hidden"
+        configButton.style.opacity = 0
+
+        for (let i = 0; i < checkButtons.length; i++) {
+            checkButtons.item(i).style.visibility = "visible"
+            checkButtons.item(i).style.opacity = 1     
+        }
+
+        for (let i = 0; i < fields.length; i++) {
+            fields.item(i).style.visibility = "visible"
+            fields.item(i).style.opacity = 1     
+        }
+
+    } else if (panel.showSelect) {
+        createOptions(subjects, selectionBox)
+
         selectionBox.addEventListener("change", () => {
             subjectObject = getSubjectByName(selectionBox.value, subjects)
             displayButttons(panel)
         })     
         
     } else {
-
-        // Set the message to show
         message = panel.message  + subjects[0].Nombre
-
-       // Set the object 
         subjectObject = subjects[0]
     }
 
-    // Display the required buttons
     displayButttons(panel)
 
-    // Make the message box visible and give it the message
     messageBox.style.opacity = 1
     messageBox.textContent = message
-    
-    // Change the color  
     mainArea.style.backgroundColor = panel.backgroundColor
 
-    // Set the functions of the buttons
     confirmButton.addEventListener("click", confirmClickAction)
+    saveButton.addEventListener("click", saveClickAction)
     copyButton.addEventListener("click", copyClickAction) 
     cancelButton.addEventListener("click", cancelClickAction)
+    configButton.addEventListener("click", configButtonAction)
+}
+
+function checkAll(checkbox, childCheckButtons) {   
+    if (checkbox.checked) {
+        for (let i = 0; i < childCheckButtons.length; i++) {
+            childCheckButtons.item(i).checked = true;
+        }
+
+    } else {
+        for (let i = 0; i < childCheckButtons.length; i++) {
+            childCheckButtons.item(i).checked = false;
+        }
+    }
+}
+
+function checkboxChange(checkbox, childCheckButtons) {
+    let mainCheckButton = document.getElementsByClassName(`${checkbox.className.substr(0, 9)}Main`).item(0)
+    let counter = 0
+
+    if (checkbox.checked) {
+        for (let i = 0; i < childCheckButtons.length; i++) {
+            if (childCheckButtons.item(i).checked) {
+                counter += 1
+            } else {
+                counter += 0
+            }
+        }
+
+        if (counter == childCheckButtons.length) {
+            mainCheckButton.indeterminate = false
+            mainCheckButton.checked = true
+        } else {
+            mainCheckButton.indeterminate = true
+        }
+
+    } else {
+        for (let i = 0; i < childCheckButtons.length; i++) {
+            if (childCheckButtons.item(i).checked) {
+                counter += 1
+            } else {
+                counter += 0
+            }
+        }
+
+        if (counter == 0) {
+            mainCheckButton.indeterminate = false    
+            mainCheckButton.checked = false
+        } else {
+            mainCheckButton.indeterminate = true
+        }
+    }
+}
+
+function readyCheckboxes() {
+    for (let i = 0; i < checkButtons.length; i++) {
+        let checkbox = checkButtons.item(i)
+        let childCheckButtons = document.getElementsByClassName(checkbox.className.substr(0, 9))
+        
+        if (checkbox.className.includes("Main")) {
+            let counter = 0
+
+            for (let e = 0; e < childCheckButtons.length; e++) {
+                if (childCheckButtons.item(e).checked) {
+                    counter += 1
+                } else {
+                    counter += 0
+                }
+            }
+
+            if (counter == childCheckButtons.length) {
+                checkButtons.item(i).indeterminate = false    
+                checkButtons.item(i).checked = true
+            } else if (counter == 0) {
+                checkButtons.item(i).indeterminate = false    
+                checkButtons.item(i).checked = false
+            } else {
+                checkButtons.item(i).indeterminate = true 
+            }
+
+            checkbox.addEventListener("change", () => {checkAll(checkbox, childCheckButtons)})
+        } else {
+            for (let e = 0; e < childCheckButtons.length; e++) {
+                childCheckButtons.item(e).classList.add("subCheckbox")
+            }
+
+            checkbox.addEventListener("change", () => {checkboxChange(checkbox, childCheckButtons)})
+        }
+    }
+}
+
+function updateSelections(selection) {
+    for (let i = 0; i < selection.length; i++) {
+        for (let e = 0; e < subCheckbuttons.length; e++) {
+            if (subCheckbuttons.item(e).value == selection[i]) {
+                subCheckbuttons.item(e).checked = true
+            }
+        }  
+    }
+
+    readyCheckboxes()
+}
+
+function createConfigFile(content) {
+    console.log(content)
+
+    localStorage.setItem("zoomLinksConfig", "")
+    localStorage.setItem("zoomLinksConfig", content)
+}
+
+function checkConfig() {
+    let content = ""
+    let contentArray = []
+
+    try {
+        content = localStorage.getItem("zoomLinksConfig")
+        contentArray = content.split(",")
+    } catch (e) {
+        if (e instanceof Object) {
+            createConfigFile("")
+        } else {
+            console.error(typeof e)
+        }
+    }
+    
+    return contentArray
+}
+
+function getSelections() {
+    let response = checkConfig()
+    updateSelections(response)
+}
+
+function saveConfig() {
+    let configFile = []
+
+    for (let i = 0; i < subCheckbuttons.length; i++) {
+        if (subCheckbuttons.item(i).checked) {
+            console.log("one is check")
+            configFile.push(subCheckbuttons.item(i).value)
+        }   
+    }
+
+    createConfigFile(configFile.toString())
 }
 
 function getDate() {
@@ -304,15 +454,16 @@ function getDate() {
 
 function checkSchedule(data) {
     let date = getDate()
+    let content = checkConfig()
     let subjectsInSchedule = []
     let schedule = data.Horarios
 
     // Check for subjects in range 
     for (let i = 0; i < schedule[date.today].length; i++) {
         if (schedule[date.today][i].Inicio < date.time && schedule[date.today][i].Final > date.time) {
-
-            // And if there are any add them to the list
-            subjectsInSchedule.push(schedule[date.today][i])
+            if (content.includes(schedule[date.today][i].Codigo)) {
+                subjectsInSchedule.push(schedule[date.today][i])
+            }
         }
     }
     
