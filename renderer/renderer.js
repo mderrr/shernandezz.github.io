@@ -83,6 +83,20 @@ const certificateNotYetValidPanel = new Panel({
     ]
 })
 
+const E503Panel = new Panel({
+    "isAlert": true,
+    "template": "error",
+    "message": "Error 503 Backend is unhealthy, ¿será GitHub?",
+    "details": "https://github.com/shernandezz/zoom-links/blob/master/HELP.md#certificado-a%C3%BAn-no-es-v%C3%A1lido---no-funcion%C3%B3",
+    "backgroundColor": colors.errorRed,
+    "buttons": [
+        undefined,
+        undefined,
+        "reintentar"
+    ]
+})
+
+
 const noSubjectsInSchedule = new Panel({
     "isAlert": true,
     "template": "error",
@@ -493,8 +507,11 @@ function checkConnection() {
         checkSchedule(data)
 
     }).catch((reason) => {
+        console.error("err", reason)
+
         if (reason == "TypeError: Failed to fetch") {
             presentPanel(noInternetPanel)
+
         } else {
             presentPanel(certificateNotYetValidPanel)
         }
